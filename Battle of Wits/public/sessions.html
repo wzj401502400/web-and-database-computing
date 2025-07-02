@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Sessions - Battle of Wits</title>
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+    <div class="header-container">
+        <div class="header">Game Sessions History</div>
+        <button type="button" class="btn" onclick="goToDashboard()">Back to Dashboard</button>
+    </div>
+
+    <div class="card">
+        <div class="filter-controls">
+            <select id="modeFilter" onchange="filterSessions()">
+                <option value="">All Modes</option>
+            </select>
+            <select id="statusFilter" onchange="filterSessions()">
+                <option value="">All Status</option>
+                <option value="completed">Completed</option>
+                <option value="failed">Failed</option>
+            </select>
+        </div>
+
+        <table class="session-table">
+            <thead>
+                <tr>
+                    <th>Mode</th>
+                    <th>Category</th>
+                    <th>Level</th>
+                    <th>Status</th>
+                    <th>Score</th>
+                    <th>Time Used</th>
+                    <th>Finishing Time</th>
+                </tr>
+            </thead>
+            <tbody id="sessionTable">
+                <tr><td colspan="6">Loading...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+
+        const categoryNames = {
+            9: 'General Knowledge',
+            10: 'Books',
+            11: 'Film',
+            12: 'Music',
+            14: 'Television',
+            15: 'Video Games',
+            16: 'Board Games',
+            17: 'Science & Nature',
+            18: 'Computers',
+            19: 'Mathematics',
+            20: 'Mythology',
+            21: 'Sports',
+            22: 'Geography',
+            23: 'History',
+            24: 'Politics',
+            25: 'Art',
+            26: 'Celebrities',
+            27: 'Animals',
+            28: 'Vehicles',
+            29: 'Comics',
+            30: 'Gadgets',
+            31: 'Anime & Manga',
+            32: 'Cartoon & Animations'
+            };
+
+function getModeLabel(mode, categoryId) {
+  if (mode === 'category' && categoryId) {
+    return `Category: ${categoryNames[categoryId] || 'Unknown'}`;
+  }
+  return mode.charAt(0).toUpperCase() + mode.slice(1);
+}
+
+        async function loadAllSessions() {
+            try {
+                const response = await fetch('/api/game-sessions', {
+                    credentials: 'include'
+                });
+
+                const sessions = await response.json();
+                const sessionTable = document.getElementById('sessionTable');
+
+                if (!Array.isArray(sessions) || sessions.length === 0) {
+                    sessionTable.innerHTML = '<tr><td colspan="6">No games played yet</td></tr>';
+                    return;
+                }
+
+                sessionTable.innerHTML = sessions.map(session => `
+                <tr class="session-row ${session.status === 'active' ? 'active-session' : ''}"
+                    data-mode="${session.game_mode}"
+                    data-status="${session.status}">
+                    <td><span class="mode-badge">Single</span></td>
+                    <td><span class="category-badge">${categoryNames[session.category_id] || 'Random'}</span></td>
+                    <td>Level ${session.level || 1}</td>
+                    <td>
+                    <span class="status-badge ${session.status}">
+                        ${session.status.charAt(0).toUpperCase() + session.status.slice(1)}
+                    </span>
+                    </td>
+                    <td>${session.score ?? '--'}</td>
+                    <td>${session.time_used != null ? session.time_used + 's' : '--'}</td>
+                    <td>
+                    <span class="time-info">
+                        ${new Date(session.timestamp).toLocaleDateString()}
+                        <br>
+                        <small>${new Date(session.timestamp).toLocaleTimeString()}</small>
+                    </span>
+                    </td>
+                </tr>
+                `).join('');
+
+            } catch (err) {
+                console.error('Error loading sessions:', err);
+                document.getElementById('sessionTable').innerHTML =
+                    '<tr><td colspan="6" class="error-text">Failed to load game history</td></tr>';
+            }
+        }
+
+        function filterSessions() {
+            const modeFilter = document.getElementById('modeFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            const rows = document.querySelectorAll('.session-row');
+
+            rows.forEach(row => {
+                const modeMatch = !modeFilter || row.dataset.mode === modeFilter;
+                const statusMatch = !statusFilter || row.dataset.status === statusFilter;
+                row.style.display = modeMatch && statusMatch ? '' : 'none';
+            });
+        }
+
+        function goToDashboard() {
+            window.location.href = 'dashboard.html';
+        }
+
+        document.addEventListener('DOMContentLoaded', loadAllSessions);
+    </script>
+</body>
+</html>

@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Battle of Wits Dashboard</title>
+  <link rel="stylesheet" href="dashboard.css" />
+</head>
+<body>
+  <div class="header-container">
+    <div class="header">Ready for the challenge, <span id="usernameDisplay"></span>?</div>
+    <button type='button' class="btn btn-danger" onclick="showLogoutModal()">Logout</button>
+  </div>
+
+  <div class="grid grid-3">
+    <div class="card">
+      <h2>Total Games Played</h2>
+      <p class="stat" id="gamesPlayed">--</p>
+    </div>
+    <div class="card">
+      <h2>Total Points Earned</h2>
+      <p class="stat" id="totalPoints">--</p>
+    </div>
+    <div class="card">
+      <h2>Start a New Game</h2>
+      <button type="button" class="btn" onclick="goToGame()">Single Player</button>
+    </div>
+  </div>
+
+  <div class="grid grid-2 margin-top">
+    <div class="card profile">
+      <div class="profile-info">
+        <img src="https://via.placeholder.com/60" alt="avatar" id="dashboardAvatar"/>
+        <div>
+          <p><strong id="usernameCard"></strong></p>
+          <p id="emailCard"></p>
+          <p id="countryCard"></p>
+          <button type="button" class="btn btn-outline" onclick="goToProfile()">View Profile</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Game Sessions</h2>
+      <table class="session-table">
+        <thead><tr><th>Mode</th><th>Category</th><th>Level</th><th>Status</th><th>Score</th><th>Time Used</th><th>Finishing Time</th></tr></thead>
+        <tbody id="sessionTable">
+          <tr><td colspan="7">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="grid grid-2 margin-top">
+    <div class="card">
+      <h2>Your Progress</h2>
+      <p class="margin-top">Game Time: <strong id="gameTime">--h --m</strong></p>
+      <p id="levelInfo">Level --</p>
+      <p id="pointInfo">-- Points</p>
+      <p id="rankInfo">Rank: --</p>
+    </div>
+    <div class="card">
+      <h2>Achievements</h2>
+      <ul id="achievementList"><li>Loading...</li></ul>
+      <button type="button" class="btn btn-outline" onclick="viewAllAchievements()">View All</button>
+    </div>
+  </div>
+
+  <div class="card margin-top" id="chatRoom">
+    <h2>Global Chat Room</h2>
+    <div id="messageArea" class="chat-box"></div>
+    <div class="d-flex">
+      <input id="chatInput" type="text" class="form-control" placeholder="Type a message" />
+      <button type='button' class="btn" onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+<div class="card margin-top" id="rewardCard">
+  <h2>🎁 Reward System</h2>
+  <p><strong>Reward Points:</strong> <span id="rewardPoints">0</span></p>
+  <button type="button" class="btn margin-top" onclick="redeemRewards()">Redeem for 10 Points</button>
+  <p class="small-text margin-top">Earn 10 points by playing games to unlock rewards!</p>
+</div>
+
+  <div id="logoutModal" class="modal-overlay">
+    <div class="modal-content">
+      <h2>Confirm Logout</h2>
+      <p>Are you sure you want to log out?</p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-outline" id="cancelLogout">Cancel</button>
+        <button type="button" class="btn btn-danger" id="confirmLogout">Confirm Logout</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+
+    const categoryNames = {
+  9: 'General Knowledge',
+  10: 'Books',
+  11: 'Film',
+  12: 'Music',
+  14: 'Television',
+  15: 'Video Games',
+  16: 'Board Games',
+  17: 'Science & Nature',
+  18: 'Computers',
+  19: 'Mathematics',
+  20: 'Mythology',
+  21: 'Sports',
+  22: 'Geography',
+  23: 'History',
+  24: 'Politics',
+  25: 'Art',
+  26: 'Celebrities',
+  27: 'Animals',
+  28: 'Vehicles',
+  29: 'Comics',
+  30: 'Gadgets',
+  31: 'Anime & Manga',
+  32: 'Cartoon & Animations'
+};
+
+function getModeLabel(mode, categoryId) {
+  if (mode === 'category' && categoryId) {
+    return `Category: ${categoryNames[categoryId] || 'Unknown'}`;
+  }
+  return mode.charAt(0).toUpperCase() + mode.slice(1);
+}
+
+    async function loadDashboardStats() {
+      try {
+        const response = await fetch('/api/player-stats');
+        if (!response.ok) throw new Error('Failed to load stats');
+        const stats = await response.json();
+
+        document.getElementById('totalPoints').innerText = stats.total_score || 0;
+        document.getElementById('pointInfo').innerText = `${stats.total_score || 0} Points`;
+        document.getElementById('gamesPlayed').innerText = stats.total_games || 0;
+        const hours = Math.floor(stats.game_time / 3600);
+        const minutes = Math.floor((stats.game_time % 3600) / 60);
+        document.getElementById('gameTime').innerText = `${hours}h ${minutes}m`;
+        document.getElementById('levelInfo').innerText = `Level ${stats.level || 1}`;
+        document.getElementById('rankInfo').innerText = `Rank: ${stats.player_rank || '--'}`;
+
+        const playerIdRes = await fetch('/api/player_id');
+if (!playerIdRes.ok) throw new Error('Failed to fetch player ID');
+const { player_id } = await playerIdRes.json();
+
+const unlockedRes = await fetch(`/api/player/${player_id}/achievements`);
+const achievementList = document.getElementById('achievementList');
+achievementList.innerHTML = '';
+
+if (unlockedRes.ok) {
+  const unlocked = await unlockedRes.json();
+  if (unlocked.length > 0) {
+    unlocked.slice(0, 9).forEach(ach => {
+      const li = document.createElement('li');
+      li.innerHTML = `✅ <strong>${ach.title}</strong>`;
+      achievementList.appendChild(li);
+    });
+  } else {
+    achievementList.innerHTML = '<li>No achievements unlocked yet.</li>';
+  }
+} else {
+  achievementList.innerHTML = '<li>Failed to load achievements.</li>';
+}
+
+      } catch (err) {
+        console.error('Error loading stats:', err);
+        document.getElementById('totalPoints').innerHTML = '<span class="error-text">Error</span>';
+        document.getElementById('gamesPlayed').innerHTML = '<span class="error-text">Error</span>';
+        document.getElementById('gameTime').innerText = 'Error';
+        document.getElementById('pointInfo').innerText = 'Could not load data.';
+        document.getElementById('levelInfo').innerText = '';
+      }
+    }
+
+    async function loadGameSessions() {
+  try {
+    const response = await fetch('/api/game-sessions', {
+      credentials: 'include'
+    });
+
+    const sessions = await response.json();
+    const sessionTable = document.getElementById('sessionTable');
+
+    if (!Array.isArray(sessions) || sessions.length === 0) {
+      sessionTable.innerHTML = '<tr><td colspan="7">No games played yet</td></tr>';
+      return;
+    }
+
+    const latestSession = sessions[0];
+    sessionTable.innerHTML = `
+      <tr class="session-row ${latestSession.status === 'active' ? 'active-session' : ''}">
+       <td>
+  <span class="mode-badge">Single</span>
+</td>
+<td>
+  <span class="category-badge">
+    ${categoryNames[latestSession.category_id] || 'Random'}
+  </span>
+</td>
+        <td>Level ${latestSession.level || 1}</td>
+        <td>
+          <span class="status-badge ${latestSession.status}">
+            ${latestSession.status.charAt(0).toUpperCase() + latestSession.status.slice(1)}
+          </span>
+        </td>
+        <td>${latestSession.score ?? '--'}</td>
+        <td>${latestSession.time_used != null ? latestSession.time_used + 's' : '--'}</td>
+        <td>
+          <span class="time-info">
+            ${new Date(latestSession.timestamp).toLocaleDateString()}
+            <br>
+            <small>${new Date(latestSession.timestamp).toLocaleTimeString()}</small>
+          </span>
+        </td>
+      </tr>
+    `;
+
+    const viewAllButton = document.createElement('div');
+    viewAllButton.className = 'view-all-button';
+    viewAllButton.innerHTML = `
+      <button type="button" class="btn btn-outline" onclick="goToSessionsPage()">
+        View All Sessions
+      </button>
+    `;
+    sessionTable.parentElement.appendChild(viewAllButton);
+
+  } catch (err) {
+    console.error('Error loading sessions:', err);
+    document.getElementById('sessionTable').innerHTML =
+      '<tr><td colspan="6" class="error-text">Failed to load game history</td></tr>';
+  }
+}
+
+    async function loadMessages() {
+      try {
+        const response = await fetch('/api/chat/messages', {
+          credentials: 'include'
+        });
+        const messages = await response.json();
+        const messageArea = document.getElementById('messageArea');
+
+        if (messages.length > 0) {
+          messageArea.innerHTML = messages.map(msg => `
+            <div class="message ${msg.isCurrentUser ? 'own-message' : ''}">
+              <div class="message-header">
+                <strong class="username">${msg.username}</strong>
+                <span class="timestamp">${new Date(msg.timestamp).toLocaleString()}</span>
+              </div>
+              <div class="message-content">${msg.content}</div>
+            </div>
+          `).join('');
+        } else {
+          messageArea.innerHTML = '<div class="message">No messages yet.</div>';
+        }
+
+        messageArea.scrollTop = messageArea.scrollHeight;
+      } catch (err) {
+        console.error('Error loading messages:', err);
+        document.getElementById('messageArea').innerHTML =
+          '<div class="message error">Failed to load messages</div>';
+      }
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('chatInput');
+      const content = input.value.trim();
+      if (!content) return;
+
+      try {
+        const response = await fetch('/api/chat/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ content })
+        });
+
+        if (!response.ok) throw new Error('Failed to send message');
+
+        input.value = '';
+        await loadMessages();
+      } catch (err) {
+        console.error('Error sending message:', err);
+        alert(err.message);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const username = localStorage.getItem('username');
+      if (username) {
+        document.getElementById('usernameDisplay').innerText = username;
+        document.getElementById('usernameCard').innerText = username;
+      }
+      document.getElementById('dashboardAvatar').src =
+        localStorage.getItem('avatarUrl') || 'https://via.placeholder.com/60';
+
+      loadDashboardStats();
+      loadGameSessions();
+      loadMessages();
+
+      const messageInterval = setInterval(loadMessages, 3000);
+      window.addEventListener('beforeunload', () => clearInterval(messageInterval));
+    });
+
+    document.getElementById('chatInput').addEventListener('keypress', e => {
+      if (e.key === 'Enter') sendMessage();
+    });
+
+    function goToGame() {
+      window.location.href = 'index.html';
+    }
+
+    function goToProfile() {
+      window.location.href = 'profile.html';
+    }
+
+    function viewAllAchievements() {
+      window.location.href = 'achievement.html';
+    }
+
+    function showLogoutModal() {
+      document.getElementById('logoutModal').classList.add('show');
+    }
+
+    function hideLogoutModal() {
+      document.getElementById('logoutModal').classList.remove('show');
+    }
+
+    function goToSessionsPage() {
+      window.location.href = 'sessions.html';
+    }
+
+    document.getElementById('confirmLogout').addEventListener('click', () => {
+      localStorage.clear();
+      window.location.href = 'login.html';
+    });
+
+
+    document.getElementById('cancelLogout').addEventListener('click', hideLogoutModal);
+    document.getElementById('logoutModal').addEventListener('click', event => {
+      if (event.target === document.getElementById('logoutModal')) {
+        hideLogoutModal();
+      }
+    });
+
+async function loadRewardPoints() {
+  try {
+    const res = await fetch('/api/player-stats');
+    if (!res.ok) throw new Error('Failed to load stats');
+    const data = await res.json();
+    document.getElementById('rewardPoints').textContent = data.total_score || 0;
+  } catch (err) {
+    console.error('Error loading reward points:', err);
+  }
+}
+
+async function redeemRewards() {
+  try {
+    const res = await fetch('/api/redeem-reward', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const data = await res.json();
+
+    if (res.ok) {
+      alert('🎉 Reward redeemed!');
+      loadRewardPoints();
+    } else {
+      alert(data.error || 'Not enough points. You need at least 50!');
+    }
+  } catch (err) {
+    console.error('Error redeeming reward:', err);
+    alert('Something went wrong.');
+  }
+}
+
+loadRewardPoints();
+  </script>
+</body>
+</html>

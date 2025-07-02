@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trivia Game</title>
+  <link rel="stylesheet" href="dashboard.css">
+  <link rel="stylesheet" href="game.css">
+</head>
+<body>
+
+  <div class="game-container">
+    <div style="text-align: right; margin: 10px;">
+      <button type="button" class="btn btn-outline" onclick="quitGame()">Exit the game</button>
+    </div>
+    <div class="game-hud">
+      <div class="hud-item">
+        <span class="hud-label">SCORE</span>
+        <span id="score" class="hud-value">0</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">QUESTION</span>
+        <span id="qIndex" class="hud-value">0 / 10</span>
+      </div>
+      <div class="hud-item timer">
+        <span class="hud-label">TIME</span>
+        <span id="timer" class="hud-value">--:--</span>
+      </div>
+    </div>
+
+    <div class="card game-card">
+      <div id="questionBox">Loading question...</div>
+    </div>
+
+    <div id="answerList" class="answer-grid"></div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const level = parseInt(params.get("level") || "1");
+    const mode = params.get("mode") || "random";
+    const category = params.get("category") || "";
+
+    const levelConfigs = {
+      1:  { easy: 10, medium: 0,  hard: 0,  time: 6 * 60 },
+      2:  { easy: 8,  medium: 2,  hard: 0,  time: 5.5 * 60 },
+      3:  { easy: 6,  medium: 4,  hard: 0,  time: 5 * 60 },
+      4:  { easy: 4,  medium: 5,  hard: 1,  time: 4.5 * 60 },
+      5:  { easy: 2,  medium: 6,  hard: 2,  time: 4 * 60 },
+      6:  { easy: 0,  medium: 6,  hard: 4,  time: 3.5 * 60 },
+      7:  { easy: 0,  medium: 4,  hard: 6,  time: 3 * 60 },
+      8:  { easy: 0,  medium: 2,  hard: 8,  time: 2.5 * 60 },
+      9:  { easy: 0,  medium: 1,  hard: 9,  time: 2 * 60 },
+      10: { easy: 0,  medium: 0,  hard: 10, time: 1.5 * 60 }
+    };
+
+    const config = levelConfigs[level] || levelConfigs[1];
+    let timeLeft = Math.floor(config.time);
+    const timerEl = document.getElementById('timer');
+
+    function updateTimer() {
+      const m = Math.floor(timeLeft / 60);
+      const s = timeLeft % 60;
+      timerEl.innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+    }
+
+    let timerInterval;
+    function startTimer() {
+      updateTimer();
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        if (timeLeft < 0) {
+          clearInterval(timerInterval);
+          finishGame();
+        } else {
+          updateTimer();
+        }
+      }, 1000);
+    }
+
+    function decode(str) {
+      const txt = document.createElement("textarea");
+      txt.innerHTML = str;
+      return txt.value;
+    }
+
+    let questions = [];
+    let current = 0;
+    let score = 0;
+
+    async function fetchTriviaQuestions(amount, difficulty) {
+      let url = `https://opentdb.com/api.php?amount=${amount}&difficulty=${difficulty}&type=multiple`;
+      if (mode === "category" && category) {
+        url += `&category=${category}`;
+      }
+      const response = await fetch(url);
+      const data = await response.json();
+      return data.results;
+    }
+
+    async function startGame() {
+      try {
+        const promises = [];
+        if (config.easy > 0) promises.push(fetchTriviaQuestions(config.easy, 'easy'));
+        if (config.medium > 0) promises.push(fetchTriviaQuestions(config.medium, 'medium'));
+        if (config.hard > 0) promises.push(fetchTriviaQuestions(config.hard, 'hard'));
+
+        const results = await Promise.all(promises);
+        questions = results.flat().sort(() => Math.random() - 0.5);
+
+        if (questions.length === 0) {
+          alert("No questions found.");
+          window.location.href = "index.html";
+          return;
+        }
+
+        startTimer();
+        showQuestion();
+      } catch (err) {
+        console.error(err);
+        alert("Failed to start game.");
+        window.location.href = 'dashboard.html';
+      }
+    }
+
+    function showQuestion() {
+      if (current >= questions.length) {
+        clearInterval(timerInterval);
+        finishGame();
+        return;
+      }
+
+      const q = questions[current];
+      const questionText = decode(q.question);
+      const categoryText = decode(q.category || '');
+      const correct = decode(q.correct_answer);
+      const options = [correct, ...q.incorrect_answers.map(decode)].sort(() => Math.random() - 0.5);
+
+      document.getElementById("questionBox").innerHTML = `<span class="category-tag">${categoryText}</span> ${questionText}`;
+      document.getElementById("qIndex").innerText = `${current + 1} / ${questions.length}`;
+
+      const list = document.getElementById("answerList");
+      list.innerHTML = '';
+      options.forEach(option => {
+        const button = document.createElement('button');
+        button.className = 'btn answer-btn';
+        button.innerHTML = option;
+        button.onclick = (e) => handleAnswer(e.target, correct);
+        list.appendChild(button);
+      });
+    }
+
+    function handleAnswer(selectedButton, correct) {
+      const buttons = document.querySelectorAll('.answer-btn');
+      buttons.forEach(button => {
+        button.disabled = true;
+        if (decode(button.innerHTML) === correct) {
+          button.classList.add('correct');
+        } else {
+          button.classList.add('incorrect');
+        }
+      });
+
+      if (decode(selectedButton.innerHTML) === correct) {
+        score++;
+        document.getElementById("score").innerText = score;
+      } else {
+        selectedButton.classList.add('selected-incorrect');
+      }
+
+      setTimeout(() => {
+        current++;
+        showQuestion();
+      }, 750);
+    }
+
+    async function finishGame() {
+      const timeUsed = Math.floor(config.time - timeLeft);
+
+      try {
+        const sessionResponse = await fetch('/api/game-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ game_mode: mode, level: level,
+          category_id: mode === 'category' ? parseInt(category) : null })
+        });
+        const sessionData = await sessionResponse.json();
+        const sessionId = sessionData.session_id;
+
+        await fetch(`/api/game-session/${sessionId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ status: 'completed', score, time_used: timeUsed })
+        });
+
+        const resultUrl = new URL('result.html', window.location.href);
+        resultUrl.searchParams.set('score', score);
+        resultUrl.searchParams.set('total', questions.length);
+        resultUrl.searchParams.set('difficulty', `Level ${level}`);
+        resultUrl.searchParams.set('time', timeUsed);
+        resultUrl.searchParams.set('session', sessionId);
+        resultUrl.searchParams.set('mode', mode);
+        if (category) resultUrl.searchParams.set('category', category);
+
+        window.location.href = resultUrl.toString();
+
+      } catch (err) {
+        console.error('Failed to save game session:', err);
+        alert('Game completed, but failed to save session.');
+        window.location.href = 'dashboard.html';
+      }
+    }
+
+    function quitGame() {
+      if (confirm("Are you sure you want to quit the game? Your progress will not be saved.")) {
+        clearInterval(timerInterval);
+        window.location.href = 'dashboard.html';
+      }
+    }
+
+    startGame();
+  </script>
+</body>
+</html>

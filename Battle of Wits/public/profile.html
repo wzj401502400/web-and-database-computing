@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Profile</title>
+  <link rel="stylesheet" href="dashboard.css">
+  <link rel="stylesheet" href="profile.css">
+</head>
+<body>
+  <div class="profile-container">
+    <div class="card">
+      <h2>My Profile</h2>
+      <p class="subtitle">Update your personal information below.</p>
+
+      <form id="profileForm">
+        <div class="profile-picture-area">
+            <img src="https://via.placeholder.com/100" alt="avatar" id="avatarPreview" class="profile-avatar">
+            <input type="file" id="avatarUpload" accept="image/png, image/jpeg, image/gif" style="display: none;">
+            <button type="button" class="btn btn-outline" onclick="document.getElementById('avatarUpload').click();">Change Avatar</button>
+        </div>
+
+        <div class="form-grid">
+          <div id="formMessage" class="form-message"></div>
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" class="form-control" id="email" name="email">
+          </div>
+          <div class="form-group">
+            <label for="given_name">Given Name</label>
+            <input type="text" class="form-control" id="given_name" name="given_name">
+          </div>
+          <div class="form-group">
+            <label for="family_name">Family Name</label>
+            <input type="text" class="form-control" id="family_name" name="family_name">
+          </div>
+          <div class="form-group">
+            <label for="country">Country</label>
+            <input type="text" class="form-control" id="country" name="country">
+          </div>
+          <div class="form-group full-width">
+            <label for="address">Address</label>
+            <input type="text" class="form-control" id="address" name="address">
+          </div>
+          <div class="form-group full-width">
+            <label for="introduction">Introduction</label>
+            <textarea class="form-control" id="introduction" name="introduction" rows="4"></textarea>
+          </div>
+        </div>
+        <div class="button-group">
+          <button type="submit" class="btn">Save Changes</button>
+          <button type="button" class="btn btn-outline" onclick="goBack()">Back to Dashboard</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const avatarUploadInput = document.getElementById('avatarUpload');
+    const avatarPreview = document.getElementById('avatarPreview');
+
+    avatarUploadInput.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                avatarPreview.src = e.target.result;
+            }
+            reader.readAsDataURL(this.files[0]);
+        }
+    });
+
+    const formMessage = document.getElementById('formMessage');
+    let messageTimeout;
+
+    function showMessage(message, type, duration = 3000) {
+      clearTimeout(messageTimeout);
+      formMessage.textContent = message;
+      formMessage.className = `form-message show message-${type}`;
+      if (type === 'success') {
+        messageTimeout = setTimeout(() => {
+          formMessage.className = 'form-message';
+        }, duration);
+      }
+    }
+
+    function goBack() {
+      window.location.href = 'dashboard.html';
+    }
+
+    document.getElementById('profileForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const file = avatarUploadInput.files[0];
+      if (file) {
+          const uploadFormData = new FormData();
+          uploadFormData.append('avatar', file);
+          try {
+              const uploadRes = await fetch('/api/upload-avatar', { method: 'POST', body: uploadFormData });
+              if (!uploadRes.ok) throw new Error('Avatar upload failed.');
+              const uploadData = await uploadRes.json();
+              localStorage.setItem('avatarUrl', uploadData.url);
+          } catch (err) {
+              showMessage(err.message, 'error');
+              return;
+          }
+      }
+
+      let playerId;
+      try {
+        const playerIdRes = await fetch('/api/player_id');
+        if (!playerIdRes.ok) throw new Error('Failed to get player ID');
+        const playerData = await playerIdRes.json();
+        playerId = playerData.player_id;
+
+        const formData = {
+          email: document.getElementById('email').value,
+          given_name: document.getElementById('given_name').value,
+          family_name: document.getElementById('family_name').value,
+          country: document.getElementById('country').value,
+          address: document.getElementById('address').value,
+          introduction: document.getElementById('introduction').value
+        };
+
+        const response = await fetch(`/api/player/${playerId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData)
+        });
+
+        const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result.error || 'Update failed');
+        }
+        showMessage('Profile updated successfully!', 'success');
+      } catch (err) {
+        console.error('Error:', err);
+        showMessage(err.message, 'error');
+      }
+    });
+
+    function loadProfile() {
+      try {
+        avatarPreview.src = localStorage.getItem('avatarUrl') || 'https://via.placeholder.com/100';
+      } catch (err) {
+        console.error('Error loading profile:', err);
+      }
+    }
+
+    async function loadPlayerInfo() {
+  try {
+    const res = await fetch('/api/player_id');
+    if (!res.ok) throw new Error('Failed to get player ID');
+    const { player_id } = await res.json();
+
+    const profileRes = await fetch(`/api/player/${player_id}`);
+    if (!profileRes.ok) throw new Error('Failed to get player info');
+
+    const profile = await profileRes.json();
+    document.getElementById('email').value = profile.email || '';
+    document.getElementById('given_name').value = profile.given_name || '';
+    document.getElementById('family_name').value = profile.family_name || '';
+    document.getElementById('country').value = profile.country || '';
+    document.getElementById('address').value = profile.address || '';
+    document.getElementById('introduction').value = profile.introduction || '';
+
+    } catch (err) {
+        console.error('Error loading player info:', err);
+        showMessage(err.message, 'error');
+    }}
+
+    window.addEventListener('load', () => {
+      loadProfile();
+      loadPlayerInfo();
+    });
+
+  </script>
+</body>
+</html>

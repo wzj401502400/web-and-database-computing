@@ -1,0 +1,46 @@
+.achievement-item {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid #444;
+  padding: 10px 0;
+  transition: background-color 0.2s ease;
+}
+
+.achievement-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.achievement-text {
+  font-size: 1rem;
+}
+
+.requirement-text {
+  font-size: 0.9rem;
+  color: #aaa;
+  margin-left: 26px;
+}
+
+.status-icon {
+  font-size: 1.2rem;
+}
+
+.achieved {
+  color: #aefaaa;
+}
+
+.unlock-time {
+  font-size: 0.8rem;
+  color: #66cc66;
+  margin-left: 26px;
+}
+
+h3 {
+  margin-top: 20px;
+  font-size: 1.1rem;
+  border-bottom: 1px solid #555;
+  padding-bottom: 5px;
+}

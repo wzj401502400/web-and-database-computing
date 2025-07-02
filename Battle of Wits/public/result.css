@@ -1,0 +1,71 @@
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.result-container {
+  width: 100%;
+  max-width: 500px;
+  padding: 1rem;
+}
+
+.result-container .card {
+  border: 1px solid var(--border-color);
+  box-shadow: var(--card-shadow);
+}
+
+.text-center {
+  text-align: center;
+}
+
+.score-display {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin: 1rem 0;
+}
+
+.details {
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+}
+
+.details p {
+  margin: 0.25rem 0;
+}
+
+.rank-display {
+  font-size: 1.5rem;
+  font-weight: 500;
+}
+
+.rank-value {
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: 0.5rem;
+  color: white;
+}
+
+.rank-s { background-color: #ffc107; }
+.rank-a { background-color: #dc3545; }
+.rank-b { background-color: #0d6efd; }
+.rank-c { background-color: #198754; }
+.rank-f { background-color: #6c757d; }
+
+.unlock-notice {
+  margin-top: 1.5rem;
+  color: #10b981;
+  font-weight: 600;
+  min-height: 1.5em;
+}
+
+.best-record {
+  color: var(--text-secondary);
+  font-style: italic;
+  margin-top: 1.5rem;
+}
+
+.btn {
+  margin-top: 1rem;
+}

@@ -1,0 +1,232 @@
+:root {
+  --bg-gradient-start: #1f2937;
+  --bg-gradient-end: #111827;
+  --card-bg: #1f2937;
+  --text-primary: #e5e7eb;
+  --text-secondary: #9ca3af;
+  --accent-primary: #3b82f6;
+  --accent-primary-hover: #2563eb;
+  --accent-danger: #ef4444;
+  --accent-danger-hover: #dc2626;
+  --border-color: #374151;
+
+  --font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+  --border-radius: 0.75rem;
+  --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --transition-speed: 0.2s ease-in-out;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-family);
+  background: linear-gradient(to bottom right, var(--bg-gradient-start), var(--bg-gradient-end));
+  color: var(--text-primary);
+  padding: 24px;
+}
+
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.header {
+  font-size: 2rem;
+  font-weight: 600;
+  margin-bottom: 0;
+}
+
+.grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.grid-3 {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.grid-2 {
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+.margin-top {
+  margin-top: 1.5rem;
+}
+
+.card {
+  background: var(--card-bg);
+  padding: 1.5rem;
+  border-radius: var(--border-radius);
+  box-shadow: var(--card-shadow);
+  border: 1px solid var(--border-color);
+  transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+}
+
+.card h2 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.75rem;
+}
+
+.stat {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--accent-primary);
+}
+
+.btn {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  background: var(--accent-primary);
+  border: none;
+  border-radius: var(--border-radius);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: background-color var(--transition-speed);
+}
+
+.header-container .btn {
+  margin-top: 0;
+}
+
+.card .btn {
+  margin-top: 0.5rem;
+}
+
+.btn:hover {
+  background: var(--accent-primary-hover);
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.btn-outline:hover {
+  background: var(--accent-primary);
+  color: white;
+}
+
+.btn-danger {
+  background: var(--accent-danger);
+}
+
+.btn-danger:hover {
+  background: var(--accent-danger-hover);
+}
+
+.profile-info {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.profile img {
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  border: 2px solid var(--accent-primary);
+}
+
+#achievementList {
+    list-style: none;
+    padding-left: 0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+th, td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+thead th {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+tbody tr:hover {
+  background-color: #2a3a50;
+}
+
+.chat-box {
+  height: 200px;
+  overflow-y: auto;
+  background: #111827;
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  border-radius: var(--border-radius);
+  margin-bottom: 1rem;
+}
+
+.d-flex {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.form-control {
+  flex-grow: 1;
+  background: #2a3a50;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 0.75rem;
+  border-radius: var(--border-radius);
+}
+
+.form-control::placeholder {
+  color: var(--text-secondary);
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.modal-overlay.show {
+  display: flex;
+  opacity: 1;
+}
+
+.modal-content {
+  background: var(--card-bg);
+  padding: 2rem;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+}
+
+.modal-content h2 {
+  margin-top: 0;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}

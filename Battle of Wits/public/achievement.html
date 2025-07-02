@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Achievements</title>
+  <link rel="stylesheet" href="dashboard.css">
+  <link rel="stylesheet" href="achievement.css">
+</head>
+<body>
+
+  <div class="achievements-container">
+    <div class="card">
+      <h2>Your Achievements</h2>
+      <ul class="achievement-list" id="achievementList"></ul>
+      <button type="button" class="btn margin-top" onclick="window.location.href='dashboard.html'">Back to Dashboard</button>
+    </div>
+    </div>
+<script>
+async function loadAchievements() {
+    try {
+        const loginRes = await fetch('/check-login');
+        if (!loginRes.ok) throw new Error('Not logged in');
+
+        const playerRes = await fetch('/api/player_id');
+        const playerData = await playerRes.json();
+        const playerId = playerData.player_id;
+
+        const achRes = await fetch(`/api/player/${playerId}/achievements`);
+        const unlocked = await achRes.json();
+
+        const allRes = await fetch('/api/achievements');
+        const allAchievements = await allRes.json();
+
+        const listEl = document.getElementById('achievementList');
+        listEl.innerHTML = '';
+
+        const completedContainer = document.createElement('div');
+        completedContainer.innerHTML = '<h3>Completed Achievements</h3>';
+        const uncompletedContainer = document.createElement('div');
+        uncompletedContainer.innerHTML = '<h3>Locked Achievements</h3>';
+
+        allAchievements.forEach(achievement => {
+            const li = document.createElement('li');
+            li.className = 'achievement-item';
+
+            const unlockedAch = unlocked.find(u => u.achievement_id === achievement.achievement_id);
+            const isUnlocked = !!unlockedAch;
+
+            if (isUnlocked) li.classList.add('achieved');
+
+            const titleContainer = document.createElement('div');
+            titleContainer.className = 'achievement-header';
+
+            const statusIcon = document.createElement('span');
+            statusIcon.className = 'status-icon';
+            statusIcon.innerHTML = isUnlocked ? '✅' : '🔒';
+
+            const titleSpan = document.createElement('span');
+            titleSpan.className = 'achievement-text';
+
+            const desc = document.createElement('div');
+            desc.className = 'requirement-text';
+
+            if (!isUnlocked && achievement.is_hidden) {
+                titleSpan.innerText = '???';
+                desc.innerText = 'Hidden Achievement';
+            } else {
+                titleSpan.innerText = achievement.title;
+                desc.innerText = achievement.requirement;
+            }
+
+            if (isUnlocked) {
+                const timeDiv = document.createElement('div');
+                timeDiv.className = 'unlock-time';
+                const unlockDate = new Date(unlockedAch.unlock_time);
+                timeDiv.innerText = `Unlocked: ${unlockDate.toLocaleDateString()}`;
+                li.appendChild(timeDiv);
+            }
+
+            titleContainer.appendChild(statusIcon);
+            titleContainer.appendChild(titleSpan);
+            li.appendChild(titleContainer);
+            li.appendChild(desc);
+
+            if (isUnlocked) {
+                completedContainer.appendChild(li);
+            } else {
+                uncompletedContainer.appendChild(li);
+            }
+        });
+
+        listEl.appendChild(completedContainer);
+        listEl.appendChild(uncompletedContainer);
+
+    } catch (err) {
+        console.error('Failed to load achievements:', err);
+        document.getElementById('achievementList').innerHTML =
+            '<li class="error-message">Error loading achievements</li>';
+    }
+}
+
+loadAchievements();
+</script>
+</body>
+</html>

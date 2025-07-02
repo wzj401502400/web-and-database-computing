@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game Over</title>
+  <link rel="stylesheet" href="dashboard.css">
+  <link rel="stylesheet" href="result.css">
+</head>
+<body>
+  <div class="result-container">
+    <div class="card text-center">
+      <h2>Game Over</h2>
+      <p class="score-display">Your Score: <span id="score"></span> / <span id="total"></span></p>
+      <div class="details">
+        <p>Difficulty: <span id="difficulty"></span></p>
+        <p>Time Used: <span id="timeUsed"></span></p>
+      </div>
+      <p id="rankDisplay" class="rank-display"></p>
+      <p id="unlockNotice" class="unlock-notice"></p>
+      <p id="bestRecord" class="best-record"></p>
+      <button type="button" class="btn" onclick="goHome()">Return to Dashboard</button>
+    </div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const score = parseInt(params.get('score'));
+    const total = parseInt(params.get('total'));
+    const difficulty = params.get('difficulty') || '';
+    const timeUsed = parseInt(params.get('time') || '0');
+    const mode = params.get('mode') || 'random';
+    const category = params.get('category') || '';
+    const levelMatch = difficulty.match(/Level (\d+)/);
+    const level = levelMatch ? parseInt(levelMatch[1]) : 1;
+
+    const minutes = Math.floor(timeUsed / 60);
+    const seconds = timeUsed % 60;
+    const timeText = `${minutes}m ${seconds < 10 ? '0' : ''}${seconds}s`;
+
+    document.getElementById('score').innerText = score;
+    document.getElementById('total').innerText = total;
+    document.getElementById('difficulty').innerText = `${difficulty}`;
+    document.getElementById('timeUsed').innerText = timeText;
+
+    const ratio = total > 0 ? score / total : 0;
+    let rank = 'F';
+    if (ratio >= 0.9) rank = 'S';
+    else if (ratio >= 0.8) rank = 'A';
+    else if (ratio >= 0.7) rank = 'B';
+    else if (ratio >= 0.6) rank = 'C';
+
+    document.getElementById('rankDisplay').innerHTML = `Your Rank: <span class="rank-value rank-${rank.toLowerCase()}">${rank}</span>`;
+
+    const unlockKey = mode === 'random' ? 'unlocked_level_random' : `unlocked_level_category_${category || 'any'}`;
+    const unlocked = parseInt(localStorage.getItem(unlockKey) || '1');
+    const unlockNotice = document.getElementById('unlockNotice');
+
+    async function updateGameStats() {
+      try {
+        const loginCheck = await fetch('/check-login');
+        if (!loginCheck.ok) return;
+
+        const response = await fetch('/api/player-stats/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ score: score, gameTime: timeUsed, win: score >= Math.ceil(0.7 * total) }),
+          credentials: 'include'
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Failed to update stats');
+
+        if (score >= Math.ceil(0.7 * total) && level < 10 && level >= unlocked) {
+            unlockNotice.innerText = `Congratulations! Level ${level + 1} has been unlocked!`;
+            localStorage.setItem(unlockKey, String(level + 1));
+        }
+      } catch (err) {
+        console.error('Error saving game stats:', err);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', updateGameStats);
+
+    function goHome() {
+      window.location.href = "dashboard.html";
+    }
+
+  </script>
+</body>
+</html>

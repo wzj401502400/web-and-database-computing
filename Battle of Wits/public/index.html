@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game Setup</title>
+  <link rel="stylesheet" href="dashboard.css">
+  <link rel="stylesheet" href="setup.css">
+</head>
+<body>
+  <div class="setup-container">
+    <div class="card">
+      <h2>Welcome back, <span id="usernameDisplay"></span>!</h2>
+      <p class="subtitle">Configure your game and start the challenge.</p>
+
+      <form id="levelForm">
+        <div class="form-group">
+          <label for="mode-select">Select Mode:</label>
+          <select id="mode-select" name="mode" class="form-select">
+            <option value="random">Random Mix Challenge</option>
+            <option value="category">Category Challenge</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="category-select">Select Category:</label>
+          <select id="category-select" name="category" class="form-select">
+            <option value="9">General Knowledge</option>
+            <option value="10">Books</option>
+            <option value="11">Film</option>
+            <option value="12">Music</option>
+            <option value="14">Television</option>
+            <option value="15">Video Games</option>
+            <option value="16">Board Games</option>
+            <option value="17">Science & Nature</option>
+            <option value="18">Computers</option>
+            <option value="19">Mathematics</option>
+            <option value="20">Mythology</option>
+            <option value="21">Sports</option>
+            <option value="22">Geography</option>
+            <option value="23">History</option>
+            <option value="24">Politics</option>
+            <option value="25">Art</option>
+            <option value="26">Celebrities</option>
+            <option value="27">Animals</option>
+            <option value="28">Vehicles</option>
+            <option value="29">Comics</option>
+            <option value="30">Gadgets</option>
+            <option value="31">Anime & Manga</option>
+            <option value="32">Cartoons & Animation</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="level-select">Select Level (1-10):</label>
+          <select id="level-select" name="level" class="form-select">
+            <option value="1">Level 1</option>
+            <option value="2">Level 2</option>
+            <option value="3">Level 3</option>
+            <option value="4">Level 4</option>
+            <option value="5">Level 5</option>
+            <option value="6">Level 6</option>
+            <option value="7">Level 7</option>
+            <option value="8">Level 8</option>
+            <option value="9">Level 9</option>
+            <option value="10">Level 10</option>
+          </select>
+        </div>
+
+        <div class="button-group">
+            <button type="submit" class="btn">Start Game</button>
+            <button type="button" onclick="goHome()" class="btn btn-outline">Return to Dashboard</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+<script>
+
+  fetch('/check-login', { credentials: 'include' })
+  .then(res => {
+    if (!res.ok) throw new Error('Not logged in');
+    return res.json();
+  })
+  .then(data => {
+    document.getElementById('usernameDisplay').innerText = data.username;
+    localStorage.setItem('username', data.username);
+  })
+  .catch(err => {
+    console.warn('Login check failed:', err);
+    window.location.href = 'login.html';
+  });
+
+
+
+  const modeSelect = document.querySelector('select[name="mode"]');
+  const categorySelect = document.querySelector('select[name="category"]');
+  const levelSelect = document.querySelector('select[name="level"]');
+
+  modeSelect.addEventListener('change', () => {
+    const isCategory = modeSelect.value === 'category';
+    categorySelect.disabled = !isCategory;
+    updateLockedLevels();
+  });
+
+  categorySelect.addEventListener('change', updateLockedLevels);
+
+async function updateLockedLevels() {
+  const mode = modeSelect.value;
+  const category = categorySelect.value;
+
+  try {
+    const categoryParam = mode === 'random' ? '0' : category;
+    const response = await fetch(`/api/unlocked-level?category_id=${categoryParam}`, {
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch unlocked level');
+    }
+
+    const data = await response.json();
+    const unlockedLevel = data.unlocked_level || 1;
+    console.log('Unlocked level:', unlockedLevel);
+
+    const options = levelSelect.options;
+    for (let i = 0; i < options.length; i++) {
+      const levelVal = parseInt(options[i].value);
+      if (levelVal > unlockedLevel) {
+        options[i].disabled = true;
+        options[i].innerText = `Level ${levelVal} (Locked)`;
+      } else {
+        options[i].disabled = false;
+        options[i].innerText = `Level ${levelVal}`;
+      }
+    }
+
+    if (parseInt(levelSelect.value) > unlockedLevel) {
+      levelSelect.value = unlockedLevel.toString();
+    }
+
+  } catch (err) {
+    console.error('Failed to load unlocked level:', err);
+    for (let i = 0; i < levelSelect.options.length; i++) {
+      const levelVal = parseInt(levelSelect.options[i].value);
+      levelSelect.options[i].disabled = levelVal > 1;
+      levelSelect.options[i].innerText = levelVal > 1
+        ? `Level ${levelVal} (Locked)`
+        : `Level ${levelVal}`;
+    }
+  }
+}
+
+modeSelect.addEventListener('change', () => {
+  const isCategory = modeSelect.value === 'category';
+  categorySelect.disabled = !isCategory;
+  updateLockedLevels();
+});
+
+categorySelect.addEventListener('change', updateLockedLevels);
+
+  modeSelect.dispatchEvent(new Event('change'));
+
+  document.getElementById('levelForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const form = e.target;
+    const level = form.level.value;
+    const mode = form.mode.value;
+    const category = form.category.value;
+
+    const queryObj = { level, mode };
+    if (mode === 'category' && category) {
+      queryObj.category = category;
+    }
+
+    const query = new URLSearchParams(queryObj).toString();
+    window.location.href = 'game.html?' + query;
+  });
+
+  function goHome() {
+    window.location.href = 'dashboard.html';
+  }
+</script>
+
+</body>
+</html>
