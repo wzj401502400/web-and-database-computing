@@ -2,7 +2,7 @@
 // README at: https://github.com/devcontainers/templates/tree/main/src/ubuntu
 {
 	"name": "Web & Database Computing",
-	"image": "jay625/wdc23:latest",
+	"image": "ghcr.io/uadelaide/wdc23:latest",
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
